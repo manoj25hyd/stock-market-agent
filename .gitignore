@@ -1,0 +1,3 @@
+stock_agent_venv/
+__pycache__/
+.env
