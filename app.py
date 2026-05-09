@@ -138,3 +138,5 @@ rsi_fig.update_layout(
 )
 
 st.plotly_chart(rsi_fig, width="stretch")
+
+
