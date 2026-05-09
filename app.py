@@ -3,11 +3,23 @@ import yfinance as yf
 import plotly.graph_objects as go
 
 st.title("📈 AI Stock Research Agent")
+st.markdown("AI-powered stock market research dashboard with technical analysis")
 
-ticker = st.text_input("Enter Stock Ticker", "AAPL")
+st.sidebar.header("Stock Controls")
+
+ticker = st.sidebar.text_input(
+    "Enter Stock Ticker",
+    "AAPL"
+)
+
+period = st.sidebar.selectbox(
+    "Select Time Period",
+    ["1mo", "3mo", "6mo", "1y", "5y"],
+    index = 2
+)
 
 # Download data
-data = yf.download(ticker, period="6mo")
+data = yf.download(ticker, period=period)
 
 # Fix multi-index issue
 if hasattr(data.columns, "levels"):
@@ -35,51 +47,69 @@ data["RSI"] = 100 - (100 / (1 + rs))
 
 # Show data
 st.subheader("Stock Data")
+
+latest_close = round(data["Close"].iloc[-1], 2)
+highest_price = round(data["High"].max(), 2)
+lowest_price = round(data["Low"].min(), 2)
+volume = int(data["Volume"].iloc[-1])
+
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric("Current Price", latest_close)
+col2.metric("Highest", highest_price)
+col3.metric("Lowest", lowest_price)
+col4.metric("Volume", f"{volume:,}")
+
 st.write(data.tail())
 
-# Create chart
+
 fig = go.Figure()
 
+# Candlestick chart
 fig.add_trace(
-    go.Scatter(
+    go.Candlestick(
         x=data["Date"],
-        y=data["Close"],
-        mode="lines",
-        name="Close Price"
+        open=data["Open"],
+        high=data["High"],
+        low=data["Low"],
+        close=data["Close"],
+        name="Candlestick",
+        increasing_line_color="lime",
+        decreasing_line_color="tomato"
     )
 )
 
-# MA20 line
+# MA20
 fig.add_trace(
     go.Scatter(
         x=data["Date"],
         y=data["MA20"],
         mode="lines",
-        name="20-Day MA"
+        name="MA20",
+        line=dict(color="orange", width=2)
     )
 )
 
-# MA50 line
+# MA50
 fig.add_trace(
     go.Scatter(
         x=data["Date"],
         y=data["MA50"],
         mode="lines",
-        name="50-Day MA"
+        name="MA50",
+        line=dict(color="cyan", width=2)
     )
 )
 
 fig.update_layout(
-    title=f"{ticker} Stock Price",
+    title=f"{ticker} Stock Analysis",
     xaxis_title="Date",
     yaxis_title="Price",
     template="plotly_dark",
-    height=600
+    height=700
 )
 
-# Display chart
-st.plotly_chart(fig, use_container_width=True)
-
+st.plotly_chart(fig, width="stretch")
 
 # RSI Chart
 rsi_fig = go.Figure()
@@ -107,4 +137,4 @@ rsi_fig.update_layout(
     height = 400
 )
 
-st.plotly_chart(rsi_fig, use_container_width=True)
+st.plotly_chart(rsi_fig, width="stretch")
