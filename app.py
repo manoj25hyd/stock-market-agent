@@ -12,6 +12,10 @@ client = OpenAI(
 )
 
 st.title("📈 AI Stock Research Agent")
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
 st.markdown("AI-powered stock market research dashboard with technical analysis")
 
 st.sidebar.header("Stock Controls")
@@ -42,6 +46,10 @@ period = st.sidebar.selectbox(
 
 # Download data
 data = yf.download(ticker, period=period)
+
+stock = yf.Ticker(ticker)
+
+news = stock.news
 
 # Fix multi-index issue
 if hasattr(data.columns, "levels"):
@@ -81,6 +89,74 @@ col1.metric("Current Price", latest_close)
 col2.metric("Highest", highest_price)
 col3.metric("Lowest", lowest_price)
 col4.metric("Volume", f"{volume:,}")
+
+st.subheader("📰 Latest Stock News")
+
+valid_news = []
+
+for article in news:
+
+    title = article.get("title")
+
+    if title:
+        valid_news.append(article)
+
+for article in valid_news[:5]:
+
+    title = article.get("title")
+
+    st.markdown(f"### {title}")
+
+    summary = article.get("summary")
+
+    if summary:
+        st.write(summary)
+
+    link = article.get("link")
+
+    if link:
+        st.markdown(link)
+
+st.subheader("📈 AI News Sentiment")
+
+news_text = ""
+
+for article in news[:5]:
+
+    title = article.get("title", "")
+
+    news_text += title + "\n"
+
+sentiment_prompt = f"""
+Analyze the sentiment of these stock market news headlines.
+
+Stock: {ticker}
+
+News Headlines:
+{news_text}
+
+Tell whether sentiment is bullish, bearish, or neutral.
+
+Also explain why in simple language.
+"""
+
+sentiment_response = client.chat.completions.create(
+    model="gpt-4.1-mini",
+    messages=[
+        {
+            "role": "system",
+            "content": "You are a financial news analyst."
+        },
+        {
+            "role": "user",
+            "content": sentiment_prompt
+        }
+    ]
+)
+
+sentiment_analysis = sentiment_response.choices[0].message.content
+
+st.write(sentiment_analysis)
 
 st.write(data.tail())
 
@@ -205,15 +281,34 @@ analysis = response.choices[0].message.content
 
 st.write(analysis)
 
+# Chat Section
+st.subheader("💬 Chat With AI Stock Assistant")
 
-st.subheader("💬 Ask AI About This Stock")
-
-user_question = st.text_input(
-    "Ask a question",
-    placeholder="Should I buy this stock?"
+user_question = st.chat_input(
+    "Ask anything about this stock..."
 )
 
+# Display previous messages
+for message in st.session_state.messages:
+
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+
+# When user sends message
 if user_question:
+
+    # Store user messages
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_question
+        }
+    )
+
+    # Display user message
+    with st.chat_message("user"):
+        st.markdown(user_question)
 
     chat_prompt = f"""
     You are an expert stock market analyst.
@@ -234,7 +329,8 @@ if user_question:
     Give a professional but beginner-friendly response.
     """
 
-    chat_response = client.chat.completions.create(
+    # Streaming AI response
+    stream = client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=[
             {
@@ -245,9 +341,34 @@ if user_question:
                 "role": "user",
                 "content": chat_prompt
             }
-        ]
+        ],
+        stream=True
     )
 
-    answer = chat_response.choices[0].message.content
+    # Display streaming response
+    with st.chat_message("assistant"):
 
-    st.write(answer)
+        response_placeholder = st.empty()
+
+        full_response = ""
+
+        for chunk in stream:
+
+            if chunk.choices[0].delta.content is not None:
+
+                full_response += chunk.choices[0].delta.content
+
+                response_placeholder.markdown(full_response + "▌")
+
+        response_placeholder.markdown(full_response)
+
+    # Save response
+    ai_response = full_response
+
+    # Store AI response
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": ai_response
+        }
+    )
