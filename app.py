@@ -204,3 +204,50 @@ response = client.chat.completions.create(
 analysis = response.choices[0].message.content
 
 st.write(analysis)
+
+
+st.subheader("💬 Ask AI About This Stock")
+
+user_question = st.text_input(
+    "Ask a question",
+    placeholder="Should I buy this stock?"
+)
+
+if user_question:
+
+    chat_prompt = f"""
+    You are an expert stock market analyst.
+
+    Stock: {ticker}
+
+    Current Price: {latest_close}
+
+    MA20: {ma20}
+
+    MA50: {ma50}
+
+    RSI: {latest_rsi}
+
+    User Question:
+    {user_question}
+
+    Give a professional but beginner-friendly response.
+    """
+
+    chat_response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an expert financial advisor."
+            },
+            {
+                "role": "user",
+                "content": chat_prompt
+            }
+        ]
+    )
+
+    answer = chat_response.choices[0].message.content
+
+    st.write(answer)
