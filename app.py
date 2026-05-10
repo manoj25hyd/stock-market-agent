@@ -16,9 +16,22 @@ st.markdown("AI-powered stock market research dashboard with technical analysis"
 
 st.sidebar.header("Stock Controls")
 
-ticker = st.sidebar.text_input(
-    "Enter Stock Ticker",
-    "AAPL"
+stocks = [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "TSLA",
+    "NVDA",
+    "META",
+    "NFLX",
+    "AMD",
+    "INTC"
+]
+
+ticker = st.sidebar.selectbox(
+    "Select Stock",
+    stocks
 )
 
 period = st.sidebar.selectbox(
