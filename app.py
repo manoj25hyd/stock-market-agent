@@ -1,6 +1,15 @@
 import streamlit as st
 import yfinance as yf
 import plotly.graph_objects as go
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY")
+)
 
 st.title("📈 AI Stock Research Agent")
 st.markdown("AI-powered stock market research dashboard with technical analysis")
@@ -139,4 +148,46 @@ rsi_fig.update_layout(
 
 st.plotly_chart(rsi_fig, width="stretch")
 
+# AI Stock Analysis
+st.subheader("🤖 AI Stock Analysis")
 
+latest_rsi = round(data["RSI"].iloc[-1], 2)
+latest_close = round(data["Close"].iloc[-1], 2)
+ma20 = round(data["MA20"].iloc[-1], 2)
+ma50 = round(data["MA50"].iloc[-1], 2)
+
+prompt = f"""
+You are a professional stock market analyst.
+
+Analyze this stock:
+
+Ticker: {ticker}
+
+Current Price: {latest_close}
+
+MA20: {ma20}
+
+MA50: {ma50}
+
+RSI: {latest_rsi}
+
+Give a short professional analysis in simple language.
+"""
+
+response = client.chat.completions.create(
+    model="gpt-4.1-mini",
+    messages=[
+        {
+            "role": "system",
+            "content": "You are an expert financial analyst."
+        },
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+)
+
+analysis = response.choices[0].message.content
+
+st.write(analysis)
