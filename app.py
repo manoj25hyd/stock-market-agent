@@ -11,7 +11,7 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
 
-st.title("📈 AI Stock Research Agent")
+st.title("📈 AI Stock Research Assistant")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
